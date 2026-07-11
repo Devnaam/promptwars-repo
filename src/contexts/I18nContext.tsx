@@ -16,9 +16,8 @@ export const I18nProvider = ({ children }: { children: ReactNode }) => {
 
   // Translation utility with fallback to English
   const t = (key: keyof Dictionary): string => {
-    const currentDict = dictionaries[locale] as any;
-    const translation = currentDict[key] || dictionaries['en'][key];
-    return translation as string;
+    const currentDict: Dictionary = dictionaries[locale];
+    return currentDict[key] ?? dictionaries.en[key];
   };
 
   return (

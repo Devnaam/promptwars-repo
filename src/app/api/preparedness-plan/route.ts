@@ -39,7 +39,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const error: ApiErrorResponse = {
         error: 'Validation Error',
         details: parseResult.error.issues.map((issue) => ({
-          path: issue.path,
+          path: issue.path.map((segment) =>
+            typeof segment === 'symbol' ? segment.toString() : segment
+          ),
           message: issue.message,
         })),
       };

@@ -2,10 +2,16 @@
 
 import React, { useState, useCallback } from 'react';
 import { useI18n } from '@/contexts/I18nContext';
+import { dictionaries, ValidLocale } from '@/i18n/dictionaries';
+import type { WeatherPhase } from '@/schemas/genai-response';
+
+type PhaseText = Record<WeatherPhase, string>;
+type PhaseChecklist = Record<WeatherPhase, string[]>;
 
 export interface PlanData {
-  preparednessPlan: string;
-  emergencyChecklists: string[];
+  preparednessPlan: PhaseText;
+  travelAdvisory: string;
+  emergencyChecklists: PhaseChecklist;
   safetyRecommendations: string[];
 }
 
@@ -14,7 +20,7 @@ interface PersonalizedPlanFormProps {
 }
 
 export const PersonalizedPlanForm: React.FC<PersonalizedPlanFormProps> = ({ onPlanGenerated }) => {
-  const { t, locale } = useI18n();
+  const { t, locale, setLocale } = useI18n();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -47,15 +53,15 @@ export const PersonalizedPlanForm: React.FC<PersonalizedPlanFormProps> = ({ onPl
       });
 
       if (!response.ok) {
-        setError(t('errorMessage') as string);
+        setError(t('errorMessage'));
         return;
       }
 
       const data: PlanData = await response.json();
       onPlanGenerated(data);
-    } catch (err) {
+    } catch {
       // Set local component error state instead of triggering ErrorBoundary
-      setError(t('errorMessage') as string);
+      setError(t('errorMessage'));
     } finally {
       setLoading(false);
     }
@@ -64,20 +70,20 @@ export const PersonalizedPlanForm: React.FC<PersonalizedPlanFormProps> = ({ onPl
   return (
     <form 
       onSubmit={handleSubmit} 
-      className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/50 dark:border-slate-800/50 p-6 sm:p-8 transition-all hover:shadow-xl"
-      aria-label={t('formTitle') as string}
+      className="rounded-2xl border border-monsoon-plum/15 bg-white/90 p-5 shadow-xl shadow-monsoon-plum/10 transition-all sm:p-6 lg:p-8"
+      aria-label={t('formTitle')}
     >
-      <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">{t('formTitle')}</h2>
+      <h2 className="mb-6 text-2xl font-bold text-monsoon-plum">{t('formTitle')}</h2>
       
       {error && (
-        <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-200 rounded-xl border border-rose-200 dark:border-rose-800/50" role="alert" aria-live="assertive">
+        <div className="mb-6 rounded-xl border border-monsoon-rose/30 bg-monsoon-yellow/30 p-4 text-sm font-medium text-monsoon-plum" role="alert" aria-live="assertive">
           {error}
         </div>
       )}
 
       <div className="space-y-5">
         <div>
-          <label htmlFor="location" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+          <label htmlFor="location" className="mb-1.5 block text-sm font-semibold text-monsoon-plum">
             {t('locationLabel')}
           </label>
           <input 
@@ -86,14 +92,14 @@ export const PersonalizedPlanForm: React.FC<PersonalizedPlanFormProps> = ({ onPl
             name="location" 
             required 
             minLength={2}
-            className="w-full px-4 py-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
-            placeholder={t('locationPlaceholder') as string}
+            className="w-full rounded-xl border border-monsoon-plum/20 bg-white px-4 py-3.5 text-monsoon-plum outline-none transition-all placeholder:text-monsoon-plum/45 focus:border-monsoon-rose focus:ring-4 focus:ring-monsoon-yellow/60"
+            placeholder={t('locationPlaceholder')}
             disabled={loading}
           />
         </div>
 
         <div>
-          <label htmlFor="familySize" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+          <label htmlFor="familySize" className="mb-1.5 block text-sm font-semibold text-monsoon-plum">
             {t('familySizeLabel')}
           </label>
           <input 
@@ -104,29 +110,49 @@ export const PersonalizedPlanForm: React.FC<PersonalizedPlanFormProps> = ({ onPl
             min={1} 
             max={20}
             defaultValue={1}
-            className="w-full px-4 py-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+            className="w-full rounded-xl border border-monsoon-plum/20 bg-white px-4 py-3.5 text-monsoon-plum outline-none transition-all focus:border-monsoon-rose focus:ring-4 focus:ring-monsoon-yellow/60"
             disabled={loading}
           />
         </div>
 
         <div>
-          <label htmlFor="vulnerabilities" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+          <label htmlFor="vulnerabilities" className="mb-1.5 block text-sm font-semibold text-monsoon-plum">
             {t('vulnerabilitiesLabel')}
           </label>
           <input 
             type="text" 
             id="vulnerabilities" 
             name="vulnerabilities" 
-            className="w-full px-4 py-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
-            placeholder={t('vulnerabilitiesPlaceholder') as string}
+            className="w-full rounded-xl border border-monsoon-plum/20 bg-white px-4 py-3.5 text-monsoon-plum outline-none transition-all placeholder:text-monsoon-plum/45 focus:border-monsoon-rose focus:ring-4 focus:ring-monsoon-yellow/60"
+            placeholder={t('vulnerabilitiesPlaceholder')}
             disabled={loading}
           />
+        </div>
+
+        <div>
+          <label htmlFor="language" className="mb-1.5 block text-sm font-semibold text-monsoon-plum">
+            {t('languageLabel')}
+          </label>
+          <select
+            id="language"
+            name="language"
+            value={locale}
+            onChange={(event) => setLocale(event.target.value as ValidLocale)}
+            className="w-full rounded-xl border border-monsoon-plum/20 bg-white px-4 py-3.5 text-monsoon-plum outline-none transition-all focus:border-monsoon-rose focus:ring-4 focus:ring-monsoon-yellow/60"
+            disabled={loading}
+          >
+            {(Object.keys(dictionaries) as ValidLocale[]).map((language) => (
+              <option key={language} value={language}>
+                {language.toUpperCase()}
+              </option>
+            ))}
+          </select>
         </div>
 
         <button 
           type="submit" 
           disabled={loading}
-          className="w-full mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transform hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex justify-center items-center gap-2"
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-monsoon-plum px-6 py-4 font-bold text-white shadow-lg shadow-monsoon-plum/20 transition-all hover:-translate-y-0.5 hover:bg-monsoon-rose hover:shadow-monsoon-rose/30 disabled:cursor-not-allowed disabled:opacity-70 disabled:transform-none"
           aria-busy={loading}
         >
           {loading ? (

@@ -160,7 +160,7 @@ export function generateTravelAdvisory(
       moderate: {
         recommendation: 'Water receding. Travel cautiously. Report hazards to local authorities.',
         transitMode: [
-          { mode: 'Walking', safe: true, advisory: 'Avoid stagnant water — risk of waterborne diseases and hidden hazards.' },
+          { mode: 'Walking', safe: true, advisory: 'Avoid stagnant water - risk of waterborne diseases and hidden hazards.' },
           { mode: 'Driving', safe: true, advisory: 'Drive slowly. Watch for potholes, sinkholes, and weakened bridges.' },
           { mode: 'Public Transit', safe: true, advisory: 'Limited services. Expect overcrowding on operational routes.' },
         ],

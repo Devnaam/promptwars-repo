@@ -1,58 +1,183 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '@/contexts/I18nContext';
+import type { Dictionary } from '@/i18n/dictionaries';
+import { calculateSeverity, generateTravelAdvisory, type WeatherSeverity } from '@/utils/weather-engine';
 
 export interface WeatherData {
   status: 'Clear' | 'Warning' | 'Critical';
   temperature: number;
-  messageKey: string;
-  detailKey: string;
+  rainfallMm: number;
+  windSpeedKmh: number;
+  visibilityKm: number;
+  floodRiskPercent: number;
+  recommendation?: string;
+  source?: string;
+  updatedAt?: string;
+  messageKey: keyof Dictionary;
+  detailKey: keyof Dictionary;
+}
+
+interface WeatherApiResponse {
+  location: string;
+  temperatureC: number;
+  rainfallMm: number;
+  windSpeedKmh: number;
+  visibilityKm: number;
+  floodRiskPercent: number;
+  severity: WeatherSeverity;
+  recommendation: string;
+  source: string;
+  updatedAt: string;
+}
+
+const fallbackWeather: WeatherData = {
+  status: 'Warning',
+  temperature: 28,
+  rainfallMm: 86,
+  windSpeedKmh: 42,
+  visibilityKm: 3.2,
+  floodRiskPercent: 38,
+  messageKey: 'weatherWarning',
+  detailKey: 'weatherDetail',
+};
+
+function severityToStatus(severity: WeatherSeverity): WeatherData['status'] {
+  if (severity === 'critical' || severity === 'high') return 'Critical';
+  if (severity === 'moderate') return 'Warning';
+  return 'Clear';
 }
 
 export const WeatherAdvisory: React.FC = () => {
   const { t } = useI18n();
+  const [weather, setWeather] = useState<WeatherData>(fallbackWeather);
+  const [loading, setLoading] = useState(true);
 
-  // Mocked weather data. useMemo is used to avoid recalculation on every render
-  // This structure makes it extremely easy to swap in a real API call later.
-  const weather: WeatherData = useMemo(() => ({
-    status: 'Warning',
-    temperature: 28,
-    messageKey: 'weatherWarning',
-    detailKey: 'weatherDetail'
-  }), []);
+  useEffect(() => {
+    const controller = new AbortController();
 
-  // Accessible color themes based on status
+    async function loadWeather() {
+      try {
+        const response = await fetch('/api/weather?location=Mumbai%2C%20Maharashtra', {
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+
+        const data = (await response.json()) as WeatherApiResponse;
+        setWeather({
+          status: severityToStatus(data.severity),
+          temperature: data.temperatureC,
+          rainfallMm: data.rainfallMm,
+          windSpeedKmh: data.windSpeedKmh,
+          visibilityKm: data.visibilityKm,
+          floodRiskPercent: data.floodRiskPercent,
+          recommendation: data.recommendation,
+          source: data.source,
+          updatedAt: data.updatedAt,
+          messageKey: 'weatherWarning',
+          detailKey: 'weatherDetail',
+        });
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          console.warn('Weather advisory fallback is being used:', error);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadWeather();
+
+    return () => controller.abort();
+  }, []);
+
+  const severity = useMemo(
+    () =>
+      calculateSeverity({
+        rainfallMm: weather.rainfallMm,
+        windSpeedKmh: weather.windSpeedKmh,
+        visibilityKm: weather.visibilityKm,
+        floodRiskPercent: weather.floodRiskPercent,
+      }),
+    [weather]
+  );
+
+  const advisory = useMemo(() => generateTravelAdvisory(severity, 'before'), [severity]);
+
   const getStatusColor = (status: WeatherData['status']) => {
     switch (status) {
-      case 'Clear': return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-100 border-emerald-200 dark:border-emerald-800';
-      case 'Warning': return 'bg-amber-50 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100 border-amber-200 dark:border-amber-800';
-      case 'Critical': return 'bg-rose-50 dark:bg-rose-900/30 text-rose-900 dark:text-rose-100 border-rose-200 dark:border-rose-800';
-      default: return 'bg-slate-50 dark:bg-slate-900/30 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800';
+      case 'Clear':
+        return 'border-monsoon-plum/15 bg-white text-monsoon-plum';
+      case 'Warning':
+        return 'border-monsoon-orange/40 bg-monsoon-yellow/55 text-monsoon-plum';
+      case 'Critical':
+        return 'border-monsoon-rose/50 bg-monsoon-rose/10 text-monsoon-plum';
+      default:
+        return 'border-monsoon-plum/15 bg-white text-monsoon-plum';
     }
   };
 
+  const updatedLabel = weather.updatedAt
+    ? new Intl.DateTimeFormat('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        day: '2-digit',
+        month: 'short',
+      }).format(new Date(weather.updatedAt))
+    : 'mock baseline';
+
   return (
-    <section 
-      className={`p-6 rounded-2xl border shadow-sm transition-all duration-300 hover:shadow-md ${getStatusColor(weather.status)}`}
+    <section
+      className={`rounded-2xl border p-5 shadow-lg shadow-monsoon-plum/10 transition-all duration-300 sm:p-6 ${getStatusColor(weather.status)}`}
       aria-labelledby="weather-heading"
+      aria-busy={loading}
     >
-      <div className="flex items-center justify-between mb-4">
-        <h2 id="weather-heading" className="text-xl font-bold flex items-center gap-2">
-          {weather.status === 'Warning' && (
-            <svg className="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 id="weather-heading" className="flex min-w-0 items-center gap-2 text-lg font-black sm:text-xl">
+          {weather.status !== 'Clear' && (
+            <svg className="h-6 w-6 shrink-0 animate-pulse text-monsoon-rose" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           )}
-          {t('weatherAdvisoryTitle')}
+          <span className="break-words">{t('weatherAdvisoryTitle')}</span>
         </h2>
-        <span className="text-3xl font-black tracking-tight">{weather.temperature}°C</span>
+        <span className="w-fit rounded-xl bg-white/70 px-3 py-1 text-2xl font-black tracking-tight sm:text-3xl">
+          {weather.temperature}&deg;C
+        </span>
       </div>
-      
-      <div className="bg-white/60 dark:bg-black/40 rounded-xl p-4 backdrop-blur-sm">
-        <h3 className="font-semibold text-lg mb-1">{t(weather.messageKey as any)}</h3>
-        <p className="opacity-90 leading-relaxed text-sm md:text-base">{t(weather.detailKey as any)}</p>
+
+      <div className="rounded-xl bg-white/75 p-4 backdrop-blur-sm">
+        <h3 className="mb-1 text-lg font-semibold">{t(weather.messageKey)}</h3>
+        <p className="text-sm leading-relaxed opacity-90 md:text-base">{t(weather.detailKey)}</p>
       </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+        <div className="rounded-xl bg-white/65 p-3">
+          <p className="font-bold">{weather.rainfallMm} mm</p>
+          <p className="text-monsoon-plum/65">Rainfall</p>
+        </div>
+        <div className="rounded-xl bg-white/65 p-3">
+          <p className="font-bold">{weather.windSpeedKmh} km/h</p>
+          <p className="text-monsoon-plum/65">Wind</p>
+        </div>
+        <div className="rounded-xl bg-white/65 p-3">
+          <p className="font-bold">{weather.visibilityKm} km</p>
+          <p className="text-monsoon-plum/65">Visibility</p>
+        </div>
+        <div className="rounded-xl bg-white/65 p-3">
+          <p className="font-bold capitalize">{severity}</p>
+          <p className="text-monsoon-plum/65">Risk</p>
+        </div>
+      </div>
+
+      <p className="mt-4 rounded-xl bg-monsoon-plum px-4 py-3 text-sm font-semibold leading-6 text-white">
+        {weather.recommendation ?? advisory.recommendation}
+      </p>
+
+      <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-monsoon-plum/55">
+        {weather.source ?? 'mock-weather-engine'} | {updatedLabel}
+      </p>
     </section>
   );
 };

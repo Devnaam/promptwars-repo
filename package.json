@@ -6,12 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "jest"
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.7",
-    "@google/genai": "^2.11.0",
     "ai": "^7.0.22",
     "lru-cache": "^11.5.2",
     "next": "16.2.10",

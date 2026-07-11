@@ -55,13 +55,12 @@ export async function generatePreparednessPlan(context: PreparednessRequest): Pr
 
   try {
     const { object } = await generateObject({
-      model: groq('llama-3.3-70b-versatile', {
-        providerOptions: {
-          groq: { structuredOutputs: false }
-        }
-      }),
+      model: groq('llama-3.3-70b-versatile'),
       schema: AiPlanResponseSchema,
       prompt: prompt,
+      providerOptions: {
+        groq: { structuredOutputs: false },
+      },
     });
 
     return object;

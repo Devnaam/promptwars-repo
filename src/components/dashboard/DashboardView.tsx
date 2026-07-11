@@ -4,82 +4,149 @@ import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useI18n } from '@/contexts/I18nContext';
 import { WeatherAdvisory } from '@/components/weather/WeatherAdvisory';
-import { PersonalizedPlanForm, PlanData } from '@/components/forms/PersonalizedPlanForm';
+import { PersonalizedPlanForm } from '@/components/forms/PersonalizedPlanForm';
 import { ErrorBoundary } from '@/components/dashboard/ErrorBoundary';
+import type { WeatherPhase } from '@/schemas/genai-response';
+import type { PlanData } from '@/components/forms/PersonalizedPlanForm';
 
-// Lazy load the Checklist component to improve initial load time and performance
-const EmergencyChecklist = dynamic(() => import('@/components/checklists/EmergencyChecklist').then(mod => mod.EmergencyChecklist), {
-  loading: () => <div className="p-8 text-center text-slate-500 animate-pulse">Loading checklists...</div>,
-  ssr: false
-});
+const EmergencyChecklist = dynamic(
+  () => import('@/components/checklists/EmergencyChecklist').then((mod) => mod.EmergencyChecklist),
+  {
+    loading: () => (
+      <div className="rounded-2xl border border-monsoon-plum/10 bg-white/80 p-8 text-center text-monsoon-plum/70">
+        Loading checklists...
+      </div>
+    ),
+    ssr: false,
+  }
+);
+
+const phaseOrder: WeatherPhase[] = ['before', 'during', 'after'];
 
 export const DashboardView: React.FC = () => {
   const { t } = useI18n();
   const [planData, setPlanData] = useState<PlanData | null>(null);
+  const [activePhase, setActivePhase] = useState<WeatherPhase>('before');
+
+  const handlePlanGenerated = (plan: PlanData) => {
+    setPlanData(plan);
+    setActivePhase('before');
+  };
+
+  const phaseLabels: Record<WeatherPhase, string> = {
+    before: t('beforePhase'),
+    during: t('duringPhase'),
+    after: t('afterPhase'),
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <header className="mb-12 text-center md:text-left">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-teal-500">
+    <div className="mx-auto min-w-0 max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+      <header className="mb-8 max-w-5xl text-center sm:mb-10 md:text-left">
+        <p className="mb-3 text-sm font-bold uppercase tracking-[0.18em] text-monsoon-rose">
+          GenAI Monsoon Safety
+        </p>
+        <h1 className="max-w-5xl break-words text-3xl font-black leading-tight text-monsoon-plum sm:text-4xl lg:text-5xl">
           {t('dashboardTitle')}
         </h1>
-        <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl">
+        <p className="mt-4 max-w-3xl text-base leading-7 text-monsoon-plum/75 sm:text-lg">
           {t('dashboardSubtitle')}
         </p>
       </header>
 
       <ErrorBoundary>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-          {/* Left Column: Form and Weather */}
-        <div className="lg:col-span-5 space-y-8">
-          <WeatherAdvisory />
-          <PersonalizedPlanForm onPlanGenerated={setPlanData} />
-        </div>
+        <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+          <div className="min-w-0 space-y-6 lg:col-span-5">
+            <WeatherAdvisory />
+            <PersonalizedPlanForm onPlanGenerated={handlePlanGenerated} />
+          </div>
 
-        {/* Right Column: Generated Plan Results */}
-        <div className="lg:col-span-7">
-          {planData ? (
-            <div className="space-y-8 transition-opacity duration-700 ease-in-out opacity-100">
-              
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-indigo-950/30 rounded-3xl p-6 sm:p-8 shadow-sm border border-blue-100 dark:border-indigo-900/50">
-                <h2 className="text-2xl font-bold mb-4 text-blue-900 dark:text-blue-100 flex items-center gap-3">
-                  <svg className="w-7 h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                  {t('planResultsTitle')}
-                </h2>
-                <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300">
-                  <p className="whitespace-pre-line leading-relaxed">{planData.preparednessPlan}</p>
-                </div>
+          <div className="min-w-0 lg:col-span-7">
+            {planData ? (
+              <div className="space-y-6">
+                <section className="rounded-2xl border border-monsoon-plum/15 bg-white/95 p-5 shadow-xl shadow-monsoon-plum/10 sm:p-6 lg:p-8">
+                  <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-bold uppercase tracking-[0.16em] text-monsoon-rose">
+                        {phaseLabels[activePhase]}
+                      </p>
+                      <h2 className="mt-1 text-2xl font-black text-monsoon-plum">
+                        {t('planResultsTitle')}
+                      </h2>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 rounded-xl bg-monsoon-yellow/40 p-1">
+                      {phaseOrder.map((phase) => (
+                        <button
+                          key={phase}
+                          type="button"
+                          onClick={() => setActivePhase(phase)}
+                          className={`rounded-lg px-3 py-2 text-sm font-bold transition-colors ${
+                            activePhase === phase
+                              ? 'bg-monsoon-plum text-white shadow-sm'
+                              : 'text-monsoon-plum hover:bg-white/80'
+                          }`}
+                          aria-pressed={activePhase === phase}
+                        >
+                          {phaseLabels[phase]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="whitespace-pre-line text-base leading-8 text-monsoon-plum/85">
+                    {planData.preparednessPlan[activePhase]}
+                  </p>
+                </section>
+
+                <section className="rounded-2xl border border-monsoon-orange/30 bg-monsoon-yellow/45 p-5 shadow-lg shadow-monsoon-orange/10 sm:p-6">
+                  <h3 className="text-xl font-black text-monsoon-plum">{t('travelAdvisoryTitle')}</h3>
+                  <p className="mt-3 leading-7 text-monsoon-plum/80">{planData.travelAdvisory}</p>
+                </section>
+
+                <EmergencyChecklist
+                  checklists={planData.emergencyChecklists[activePhase]}
+                  phaseLabel={phaseLabels[activePhase]}
+                />
+
+                {planData.safetyRecommendations.length > 0 && (
+                  <section className="rounded-2xl border border-monsoon-plum/15 bg-white/95 p-5 shadow-lg shadow-monsoon-plum/10 sm:p-6">
+                    <h3 className="text-xl font-black text-monsoon-plum">
+                      {t('safetyRecommendationsTitle')}
+                    </h3>
+                    <ul className="mt-4 space-y-3">
+                      {planData.safetyRecommendations.map((recommendation) => (
+                        <li
+                          key={recommendation}
+                          className="flex gap-3 rounded-xl bg-monsoon-yellow/25 p-3 text-monsoon-plum/85"
+                        >
+                          <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-monsoon-rose" aria-hidden="true" />
+                          <span className="leading-7">{recommendation}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
               </div>
-
-              <EmergencyChecklist checklists={planData.emergencyChecklists} />
-
-              {planData.safetyRecommendations && planData.safetyRecommendations.length > 0 && (
-                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/50 dark:border-slate-800/50">
-                  <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white flex items-center gap-3">
-                    <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    {t('safetyRecommendationsTitle')}
-                  </h3>
-                  <ul className="space-y-3">
-                    {planData.safetyRecommendations.map((rec, i) => (
-                      <li key={i} className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
-                        <span className="text-emerald-500 mt-1">•</span>
-                        <span className="leading-relaxed">{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
+            ) : (
+              <section className="flex min-h-[420px] flex-col justify-center rounded-2xl border-2 border-dashed border-monsoon-plum/25 bg-white/60 p-6 text-center shadow-inner shadow-monsoon-plum/5 sm:p-10">
+                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-monsoon-yellow text-monsoon-plum">
+                  <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center p-12 text-center rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400 min-h-[400px]">
-              <svg className="w-16 h-16 mb-4 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-lg">Fill out the form to generate your personalized action plan.</p>
-            </div>
-          )}
+                <h2 className="text-2xl font-black text-monsoon-plum">{t('emptyStateTitle')}</h2>
+                <p className="mx-auto mt-3 max-w-md leading-7 text-monsoon-plum/70">{t('emptyStateBody')}</p>
+                <div className="mx-auto mt-8 grid w-full max-w-xl gap-3 text-left sm:grid-cols-3">
+                  {phaseOrder.map((phase) => (
+                    <div key={phase} className="rounded-xl border border-monsoon-plum/10 bg-white/80 p-4">
+                      <p className="font-bold text-monsoon-rose">{phaseLabels[phase]}</p>
+                      <p className="mt-2 text-sm leading-6 text-monsoon-plum/65">{t('starterKitTitle')}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
         </div>
-      </div>
       </ErrorBoundary>
     </div>
   );

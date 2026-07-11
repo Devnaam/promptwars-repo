@@ -2,12 +2,13 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PersonalizedPlanForm } from '@/components/forms/PersonalizedPlanForm';
 
-// Mock I18n Context with type-safe return
+const setLocaleMock = jest.fn();
+
 jest.mock('@/contexts/I18nContext', () => ({
   useI18n: () => ({
     t: (key: string) => key,
     locale: 'en',
-    setLocale: jest.fn(),
+    setLocale: setLocaleMock,
   }),
 }));
 
@@ -19,21 +20,24 @@ describe('PersonalizedPlanForm', () => {
     global.fetch = jest.fn();
   });
 
-  it('should render all form fields with accessible labels', () => {
+  it('renders all form fields with accessible labels', () => {
     render(<PersonalizedPlanForm onPlanGenerated={mockOnPlanGenerated} />);
+
     expect(screen.getByLabelText('locationLabel')).toBeInTheDocument();
     expect(screen.getByLabelText('familySizeLabel')).toBeInTheDocument();
     expect(screen.getByLabelText('vulnerabilitiesLabel')).toBeInTheDocument();
+    expect(screen.getByLabelText('languageLabel')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'submitButton' })).toBeInTheDocument();
   });
 
-  it('should submit the form and call onPlanGenerated with phased response', async () => {
+  it('submits the form and calls onPlanGenerated with phased response', async () => {
     const mockResponse = {
       preparednessPlan: {
         before: 'Prepare supplies',
         during: 'Stay safe',
         after: 'Recover',
       },
+      travelAdvisory: 'Avoid low-lying roads.',
       emergencyChecklists: {
         before: ['Buy kit'],
         during: ['Stay indoors'],
@@ -58,7 +62,6 @@ describe('PersonalizedPlanForm', () => {
       expect(mockOnPlanGenerated).toHaveBeenCalledWith(mockResponse);
     });
 
-    // Verify correct payload with language field
     expect(global.fetch).toHaveBeenCalledWith(
       '/api/preparedness-plan',
       expect.objectContaining({
@@ -73,42 +76,18 @@ describe('PersonalizedPlanForm', () => {
     );
   });
 
-  it('should trigger ErrorBoundary when API returns non-ok response', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
+  it('shows a local error message when API returns non-ok response', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({ ok: false });
 
-    class TestBoundary extends React.Component<
-      { children: React.ReactNode },
-      { hasError: boolean }
-    > {
-      state = { hasError: false };
-      static getDerivedStateFromError() {
-        return { hasError: true };
-      }
-      componentDidCatch() {}
-      render() {
-        return this.state.hasError ? (
-          <div>ErrorBoundary Activated</div>
-        ) : (
-          this.props.children
-        );
-      }
-    }
-
-    render(
-      <TestBoundary>
-        <PersonalizedPlanForm onPlanGenerated={mockOnPlanGenerated} />
-      </TestBoundary>
-    );
+    render(<PersonalizedPlanForm onPlanGenerated={mockOnPlanGenerated} />);
 
     fireEvent.change(screen.getByLabelText('locationLabel'), { target: { value: 'Kolkata' } });
     fireEvent.click(screen.getByRole('button', { name: 'submitButton' }));
 
     await waitFor(() => {
-      expect(screen.getByText('ErrorBoundary Activated')).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent('errorMessage');
     });
 
-    consoleSpy.mockRestore();
+    expect(mockOnPlanGenerated).not.toHaveBeenCalled();
   });
 });

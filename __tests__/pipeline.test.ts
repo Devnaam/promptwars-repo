@@ -119,6 +119,7 @@ describe('Data Pipeline Integration', () => {
           during: 'Stay indoors and avoid flooded areas.',
           after: 'Assess damage and seek medical help if needed.',
         },
+        travelAdvisory: 'Avoid flooded roads and delay non-essential travel.',
         emergencyChecklists: {
           before: ['Buy flashlights', 'Store water'],
           during: ['Move to upper floors'],
@@ -133,6 +134,7 @@ describe('Data Pipeline Integration', () => {
     it('should reject a flat (non-phased) GenAI response', () => {
       const flatResponse = {
         preparednessPlan: 'This is a flat string, not phased',
+        travelAdvisory: 'Avoid travel',
         emergencyChecklists: ['item1', 'item2'],
         safetyRecommendations: ['rec1'],
       };
@@ -143,6 +145,7 @@ describe('Data Pipeline Integration', () => {
     it('should reject response with missing phases', () => {
       const incomplete = {
         preparednessPlan: { before: 'ok', during: 'ok' }, // missing 'after'
+        travelAdvisory: 'Avoid travel',
         emergencyChecklists: { before: ['x'], during: ['y'], after: ['z'] },
         safetyRecommendations: ['rec'],
       };
