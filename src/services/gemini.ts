@@ -16,7 +16,8 @@ export async function generatePreparednessPlan(context: PreparednessRequest) {
   // Construct the contextual prompt for the GenAI model
   const prompt = `Act as an expert in disaster management and monsoon preparedness. 
 Generate a personalized monsoon preparedness plan for a family of ${context.familySize} located in ${context.location}. 
-Their vulnerabilities include: ${context.vulnerabilities.length > 0 ? context.vulnerabilities.join(', ') : 'None'}.`;
+Their vulnerabilities include: ${context.vulnerabilities.length > 0 ? context.vulnerabilities.join(', ') : 'None'}.
+CRITICAL INSTRUCTION: You MUST provide the ENTIRE response translated into the '${context.language}' language.`;
 
   // Define the required structured JSON output schema
   const responseSchema: Schema = {
