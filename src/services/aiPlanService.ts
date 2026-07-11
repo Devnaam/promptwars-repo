@@ -1,35 +1,18 @@
 import { generateObject } from 'ai';
 import { groq } from '@ai-sdk/groq';
-import { z } from 'zod';
-import { PreparednessRequest } from '@/schemas/preparedness';
+import { PreparednessRequest, SupportedLanguage } from '@/schemas/preparedness';
+import { GenAIResponse, GenAIResponseSchema } from '@/schemas/genai-response';
 import { sanitizeField, sanitizeFieldArray } from '@/utils/sanitize';
 
-const LANGUAGE_NAMES: Record<string, string> = {
+const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
   en: 'English',
   hi: 'Hindi',
   bn: 'Bengali',
   ta: 'Tamil',
 };
 
-/**
- * Strict Zod schema for validating the structured JSON response
- * returned by the Groq Llama model.
- */
-export const AiPlanResponseSchema = z.object({
-  personalizedPlan: z.object({
-    before: z.string().min(1, 'Before-phase plan is required'),
-    during: z.string().min(1, 'During-phase plan is required'),
-    after: z.string().min(1, 'After-phase plan is required'),
-  }),
-  travelAdvisory: z.string().min(1, 'Travel advisory is required'),
-  emergencyChecklist: z.object({
-    before: z.array(z.string()).min(1),
-    during: z.array(z.string()).min(1),
-    after: z.array(z.string()).min(1),
-  }),
-});
-
-export type AiPlanResponse = z.infer<typeof AiPlanResponseSchema>;
+export const AiPlanResponseSchema = GenAIResponseSchema;
+export type AiPlanResponse = GenAIResponse;
 
 /**
  * Builds a phased prompt covering Before, During, and After monsoon phases.
@@ -51,11 +34,13 @@ Generate a comprehensive, personalized monsoon preparedness plan for:
 - Specific vulnerabilities: ${safeVulnerabilities.length > 0 ? safeVulnerabilities.join(', ') : 'None reported'}
 
 You MUST structure your response strictly matching the JSON schema.
-1. personalizedPlan: Provide distinct instructions for 'before', 'during', and 'after' phases.
+1. preparednessPlan: Provide distinct instructions for 'before', 'during', and 'after' phases.
 2. travelAdvisory: General travel safety guidance based on the location.
-3. emergencyChecklist: Actionable lists for 'before', 'during', and 'after' phases.
+3. emergencyChecklists: Actionable lists for 'before', 'during', and 'after' phases.
+4. safetyRecommendations: 4-6 concise safety recommendations tailored to the household vulnerabilities.
 
-CRITICAL: Provide the ENTIRE response in ${languageName} language.`;
+CRITICAL: Provide the ENTIRE response in ${languageName} language.
+You MUST output your final answer strictly as a valid minified JSON object matching the requested schema wrapper format. Do not wrap the JSON in Markdown code block backticks (\`\`\`json) or write any introductory conversational text.`;
 }
 
 /**
@@ -70,7 +55,11 @@ export async function generatePreparednessPlan(context: PreparednessRequest): Pr
 
   try {
     const { object } = await generateObject({
-      model: groq('llama-3.3-70b-versatile'),
+      model: groq('llama-3.3-70b-versatile', {
+        providerOptions: {
+          groq: { structuredOutputs: false }
+        }
+      }),
       schema: AiPlanResponseSchema,
       prompt: prompt,
     });
@@ -81,17 +70,23 @@ export async function generatePreparednessPlan(context: PreparednessRequest): Pr
     
     // Graceful fallback payload perfectly matching the AiPlanResponse schema
     const FALLBACK_PLAN: AiPlanResponse = {
-      personalizedPlan: {
+      preparednessPlan: {
         before: "Stock up on at least 3 days of non-perishable food, water, and essential medications. Keep flashlights, extra batteries, and a first-aid kit in an accessible location. Clear drains and gutters around your home.",
         during: "Stay indoors and away from windows. Do not walk or drive through floodwaters, as even 15cm of moving water can knock you down. Tune into local emergency broadcasts for real-time updates.",
         after: "Wait for official clearance before returning home or traveling. Avoid contact with floodwater to prevent waterborne diseases. Check your home for structural damage and photograph it for insurance purposes."
       },
       travelAdvisory: "Avoid non-essential travel. Do not attempt to drive or walk through flooded areas. Keep emergency numbers handy.",
-      emergencyChecklist: {
+      emergencyChecklists: {
         before: ["3-day supply of food and water", "First-aid kit and essential medicines", "Flashlights and extra batteries", "Important documents in waterproof bags"],
         during: ["Stay tuned to emergency broadcasts", "Move to higher ground if flooding starts", "Disconnect electrical appliances"],
         after: ["Check family members for injuries", "Boil drinking water", "Report fallen power lines"]
-      }
+      },
+      safetyRecommendations: [
+        "Keep phones charged and power banks ready.",
+        "Share your plan with every household member.",
+        "Avoid floodwater because it may hide open drains, debris, or live wires.",
+        "Follow official alerts before resuming travel."
+      ],
     };
     
     return FALLBACK_PLAN;
