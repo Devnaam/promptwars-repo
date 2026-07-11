@@ -9,11 +9,22 @@ type PhaseText = Record<WeatherPhase, string>;
 type PhaseChecklist = Record<WeatherPhase, string[]>;
 
 export interface PlanData {
+  context: {
+    location: string;
+    familySize: number;
+    vulnerabilities: string[];
+    language: ValidLocale;
+  };
   preparednessPlan: PhaseText;
   travelAdvisory: string;
   emergencyChecklists: PhaseChecklist;
   safetyRecommendations: string[];
+  communityActions: string[];
+  medicalAndAccessibility: string[];
+  recoverySteps: string[];
 }
+
+type GeneratedPlanData = Omit<PlanData, 'context'>;
 
 interface PersonalizedPlanFormProps {
   onPlanGenerated: (plan: PlanData) => void;
@@ -57,8 +68,16 @@ export const PersonalizedPlanForm: React.FC<PersonalizedPlanFormProps> = ({ onPl
         return;
       }
 
-      const data: PlanData = await response.json();
-      onPlanGenerated(data);
+      const data = (await response.json()) as GeneratedPlanData;
+      onPlanGenerated({
+        ...data,
+        context: {
+          location,
+          familySize: payload.familySize,
+          vulnerabilities,
+          language: locale,
+        },
+      });
     } catch {
       // Set local component error state instead of triggering ErrorBoundary
       setError(t('errorMessage'));

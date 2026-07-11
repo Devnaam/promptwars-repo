@@ -126,6 +126,9 @@ describe('Data Pipeline Integration', () => {
           after: ['Check gas lines'],
         },
         safetyRecommendations: ['Keep medications handy'],
+        communityActions: ['Check on neighbors'],
+        medicalAndAccessibility: ['Keep medicines dry'],
+        recoverySteps: ['Boil drinking water'],
       };
       const result = GenAIResponseSchema.safeParse(validResponse);
       expect(result.success).toBe(true);
@@ -137,6 +140,9 @@ describe('Data Pipeline Integration', () => {
         travelAdvisory: 'Avoid travel',
         emergencyChecklists: ['item1', 'item2'],
         safetyRecommendations: ['rec1'],
+        communityActions: ['community'],
+        medicalAndAccessibility: ['medical'],
+        recoverySteps: ['recovery'],
       };
       const result = GenAIResponseSchema.safeParse(flatResponse);
       expect(result.success).toBe(false);
@@ -148,6 +154,9 @@ describe('Data Pipeline Integration', () => {
         travelAdvisory: 'Avoid travel',
         emergencyChecklists: { before: ['x'], during: ['y'], after: ['z'] },
         safetyRecommendations: ['rec'],
+        communityActions: ['community'],
+        medicalAndAccessibility: ['medical'],
+        recoverySteps: ['recovery'],
       };
       const result = GenAIResponseSchema.safeParse(incomplete);
       expect(result.success).toBe(false);

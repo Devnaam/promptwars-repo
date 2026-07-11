@@ -6,6 +6,9 @@ import { useI18n } from '@/contexts/I18nContext';
 import { WeatherAdvisory } from '@/components/weather/WeatherAdvisory';
 import { PersonalizedPlanForm } from '@/components/forms/PersonalizedPlanForm';
 import { ErrorBoundary } from '@/components/dashboard/ErrorBoundary';
+import { AlertCenter } from '@/components/alerts/AlertCenter';
+import { PlanActions } from '@/components/plan/PlanActions';
+import { InsightList } from '@/components/plan/InsightList';
 import type { WeatherPhase } from '@/schemas/genai-response';
 import type { PlanData } from '@/components/forms/PersonalizedPlanForm';
 
@@ -27,6 +30,7 @@ export const DashboardView: React.FC = () => {
   const { t } = useI18n();
   const [planData, setPlanData] = useState<PlanData | null>(null);
   const [activePhase, setActivePhase] = useState<WeatherPhase>('before');
+  const activeLocation = planData?.context.location ?? 'Mumbai, Maharashtra';
 
   const handlePlanGenerated = (plan: PlanData) => {
     setPlanData(plan);
@@ -45,10 +49,10 @@ export const DashboardView: React.FC = () => {
         <p className="mb-3 text-sm font-bold uppercase tracking-[0.18em] text-monsoon-rose">
           GenAI Monsoon Safety
         </p>
-        <h1 className="max-w-5xl break-words text-3xl font-black leading-tight text-monsoon-plum sm:text-4xl lg:text-5xl">
+        <h1 className="mx-auto max-w-[22rem] break-words text-2xl font-black leading-tight text-monsoon-plum sm:mx-0 sm:max-w-5xl sm:text-4xl lg:text-5xl">
           {t('dashboardTitle')}
         </h1>
-        <p className="mt-4 max-w-3xl text-base leading-7 text-monsoon-plum/75 sm:text-lg">
+        <p className="mx-auto mt-4 max-w-[22rem] text-base leading-7 text-monsoon-plum/75 sm:mx-0 sm:max-w-3xl sm:text-lg">
           {t('dashboardSubtitle')}
         </p>
       </header>
@@ -56,13 +60,16 @@ export const DashboardView: React.FC = () => {
       <ErrorBoundary>
         <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
           <div className="min-w-0 space-y-6 lg:col-span-5">
-            <WeatherAdvisory />
+            <WeatherAdvisory location={activeLocation} />
+            <AlertCenter location={activeLocation} />
             <PersonalizedPlanForm onPlanGenerated={handlePlanGenerated} />
           </div>
 
           <div className="min-w-0 lg:col-span-7">
             {planData ? (
               <div className="space-y-6">
+                <PlanActions plan={planData} />
+
                 <section className="rounded-2xl border border-monsoon-plum/15 bg-white/95 p-5 shadow-xl shadow-monsoon-plum/10 sm:p-6 lg:p-8">
                   <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
@@ -108,23 +115,12 @@ export const DashboardView: React.FC = () => {
                 />
 
                 {planData.safetyRecommendations.length > 0 && (
-                  <section className="rounded-2xl border border-monsoon-plum/15 bg-white/95 p-5 shadow-lg shadow-monsoon-plum/10 sm:p-6">
-                    <h3 className="text-xl font-black text-monsoon-plum">
-                      {t('safetyRecommendationsTitle')}
-                    </h3>
-                    <ul className="mt-4 space-y-3">
-                      {planData.safetyRecommendations.map((recommendation) => (
-                        <li
-                          key={recommendation}
-                          className="flex gap-3 rounded-xl bg-monsoon-yellow/25 p-3 text-monsoon-plum/85"
-                        >
-                          <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-monsoon-rose" aria-hidden="true" />
-                          <span className="leading-7">{recommendation}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
+                  <InsightList title={t('safetyRecommendationsTitle')} items={planData.safetyRecommendations} />
                 )}
+
+                <InsightList title={t('communityActionsTitle')} items={planData.communityActions} tone="warm" />
+                <InsightList title={t('medicalAccessibilityTitle')} items={planData.medicalAndAccessibility} />
+                <InsightList title={t('recoveryStepsTitle')} items={planData.recoverySteps} tone="warm" />
               </div>
             ) : (
               <section className="flex min-h-[420px] flex-col justify-center rounded-2xl border-2 border-dashed border-monsoon-plum/25 bg-white/60 p-6 text-center shadow-inner shadow-monsoon-plum/5 sm:p-10">

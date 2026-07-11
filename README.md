@@ -1,68 +1,100 @@
-# 🌧️ Monsoon Preparedness & Citizen Assistance Platform
+# Monsoon Preparedness & Citizen Assistance
 
-A high-performance, GenAI-powered web application designed to help individuals, families, and communities prepare for the monsoon season. This platform leverages Generative AI to provide personalized preparedness plans, weather-aware guidance, emergency checklists, travel advisories, and multilingual assistance to ensure safety before, during, and after severe weather events.
+GenAI-powered monsoon preparedness assistant for individuals, families, and communities. The app creates personalized before/during/after preparedness plans, weather-aware guidance, emergency checklists, travel advisories, multilingual assistance, and alert-ready safety messages.
 
-## 🎯 The Challenge
-> *Design a GenAI-powered solution that helps individuals, families, and communities prepare for the monsoon season. The solution must leverage Generative AI to provide personalized preparedness plans, weather-aware guidance, emergency checklists, travel advisories, safety recommendations, multilingual assistance, and real-time alerts before, during, and after severe weather events.*
+## Submission Links
 
-## ✨ Key Features
+- Public GitHub Repository: add your repository URL here
+- Deployed Application: add your deployed URL here
 
-- **🧠 GenAI-Powered Personalization**: Utilizes the Vercel AI SDK and Groq (`llama-3.3-70b-versatile`) to generate highly specific action plans based on location, household size, and specific family vulnerabilities (e.g., elderly, infants, medical conditions).
-- **⏱️ Phased Guidance**: Breaks down all instructions, checklists, and travel advisories into actionable phases: **Before**, **During**, and **After** the monsoon.
-- **🌍 Multilingual Assistance**: Full i18n support offering perfectly translated interfaces and GenAI responses in English, Hindi, Bengali, and Tamil.
-- **🛡️ Bulletproof Security**: Implements strict `Zod` schemas to enforce structured JSON outputs from the LLM, coupled with robust prompt injection sanitization to neutralize malicious inputs.
-- **⚡ Resilient Fallbacks**: Engineered for high-stakes environments. If the GenAI API times out or rate limits, the platform instantly falls back to a high-quality, pre-baked local static plan, ensuring users *never* face a broken application during an emergency.
-- **🔊 Voice Alert Broadcasts**: Integrated with the Web Speech API to read emergency alerts aloud, ensuring accessibility for visually impaired users and providing hands-free guidance.
-- **🚦 Weather Severity Engine**: A custom algorithm that maps real-time weather parameters (rainfall, wind speed, visibility, flood risk) directly to actionable, mode-specific transit advisories (Walking, Driving, Public Transit).
+## What This Version Includes
 
-## 🛠️ Tech Stack
+- Personalized GenAI plans with distinct `before`, `during`, and `after` phases.
+- Weather-aware prompt grounding using the shared weather snapshot service.
+- Emergency checklist with per-phase progress tracking.
+- Travel advisory, safety recommendations, medical/accessibility guidance, community actions, and recovery steps.
+- Real-time alert center with before/during/after alert messages and browser speech-synthesis support.
+- Multilingual UI and AI output targeting English, Hindi, Bengali, and Tamil.
+- Copy, download, and print actions for offline preparedness.
+- Responsive UI using the required challenge palette:
+  - `#F9ED69`
+  - `#F08A5D`
+  - `#B83B5E`
+  - `#6A2C70`
+- Production-oriented validation, sanitization, typed API contracts, and rate limiting.
 
-- **Framework**: Next.js (App Router), React
-- **Styling**: Tailwind CSS
-- **AI Integration**: Vercel AI SDK (`ai`), `@ai-sdk/groq`
-- **Validation**: Zod
-- **Testing**: Jest, React Testing Library
+## GenAI Services Used
 
-## 🚀 Getting Started
+The project uses the Vercel AI SDK with Groq:
 
-### Prerequisites
-- Node.js (v18+ recommended)
-- A Groq API Key
+- Service file: `src/services/aiPlanService.ts`
+- Model: `llama-3.3-70b-versatile`
+- API route: `src/app/api/preparedness-plan/route.ts`
 
-### Installation
+The GenAI service receives:
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd promptwars-repo
-   ```
+- User location
+- Family size
+- Household vulnerabilities
+- Preferred response language
+- Weather snapshot for the submitted location
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+It returns structured JSON validated by Zod:
 
-3. **Configure Environment Variables:**
-   Create a `.env.local` file in the root directory and add your Groq API key:
-   ```env
-   GROQ_API_KEY=your_actual_groq_api_key_here
-   ```
+- Phased preparedness plan
+- Travel advisory
+- Emergency checklists
+- Safety recommendations
+- Community actions
+- Medical and accessibility guidance
+- Recovery steps
 
-4. **Run the Development Server:**
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+## Weather-Aware Architecture
 
-## 🧪 Testing
-The codebase maintains a rigorous test suite covering the AI service layers, data pipelines, and UI components.
-To run the tests:
+Weather intelligence is centralized in `src/services/weatherService.ts`.
+
+The current implementation uses deterministic mock weather data for challenge/demo reliability. It is intentionally provider-ready: replace `getWeatherSnapshot` with OpenWeather, IMD, Tomorrow.io, or another provider without changing the API route or UI contracts.
+
+Consumers:
+
+- `src/app/api/weather/route.ts`
+- `src/app/api/preparedness-plan/route.ts`
+- `src/components/weather/WeatherAdvisory.tsx`
+- `src/components/alerts/AlertCenter.tsx`
+
+## Environment Variables
+
+Create `.env.local`:
+
 ```bash
-npm run test
+GROQ_API_KEY=your_groq_api_key
 ```
 
-## 🏗️ Architecture & Code Quality Highlights
-- **Strictly Typed**: Zero `any` types. Everything from API payloads to the i18n dictionary is fully typed.
-- **Debounced Inputs**: Custom `useDebounce` hooks to minimize unnecessary renders and API stress.
-- **Separation of Concerns**: Cleanly separated schemas, services, utility engines, and UI components.
-- **Accessible Design**: ARIA labels, semantic HTML, and high-contrast color schemes for emergency readability.
+## Running Locally
+
+```bash
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+## Production Checks
+
+```bash
+npm run lint
+npm run build
+```
+
+## Key Files
+
+- `src/app/page.tsx` - app shell
+- `src/components/dashboard/DashboardView.tsx` - main experience orchestration
+- `src/components/forms/PersonalizedPlanForm.tsx` - household input and language selection
+- `src/components/weather/WeatherAdvisory.tsx` - weather-aware advisory card
+- `src/components/alerts/AlertCenter.tsx` - alert lifecycle and voice-ready alerts
+- `src/components/plan/PlanActions.tsx` - copy/download/print
+- `src/services/aiPlanService.ts` - GenAI plan generation
+- `src/services/weatherService.ts` - weather snapshot provider abstraction
+- `src/schemas/genai-response.ts` - validated GenAI output contract
+- `src/schemas/preparedness.ts` - validated user input contract

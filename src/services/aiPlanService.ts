@@ -3,6 +3,7 @@ import { groq } from '@ai-sdk/groq';
 import { PreparednessRequest, SupportedLanguage } from '@/schemas/preparedness';
 import { GenAIResponse, GenAIResponseSchema } from '@/schemas/genai-response';
 import { sanitizeField, sanitizeFieldArray } from '@/utils/sanitize';
+import type { WeatherSnapshot } from '@/services/weatherService';
 
 const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
   en: 'English',
@@ -21,10 +22,19 @@ export type AiPlanResponse = GenAIResponse;
  * @param context - The validated and sanitized user request
  * @returns A prompt string for the GenAI model
  */
-function buildPrompt(context: PreparednessRequest): string {
+function buildPrompt(context: PreparednessRequest, weather?: WeatherSnapshot): string {
   const safeLocation = sanitizeField(context.location);
   const safeVulnerabilities = sanitizeFieldArray(context.vulnerabilities);
   const languageName = LANGUAGE_NAMES[context.language] ?? 'English';
+  const weatherContext = weather
+    ? `Current weather intelligence:
+- Rainfall: ${weather.rainfallMm} mm
+- Wind: ${weather.windSpeedKmh} km/h
+- Visibility: ${weather.visibilityKm} km
+- Flood risk: ${weather.floodRiskPercent}%
+- Severity: ${weather.severity}
+- Weather recommendation: ${weather.recommendation}`
+    : 'Current weather intelligence: unavailable; provide conservative monsoon guidance.';
 
   return `You are an expert disaster management consultant specializing in monsoon preparedness for the Indian subcontinent.
 
@@ -33,11 +43,16 @@ Generate a comprehensive, personalized monsoon preparedness plan for:
 - Household size: ${context.familySize} members
 - Specific vulnerabilities: ${safeVulnerabilities.length > 0 ? safeVulnerabilities.join(', ') : 'None reported'}
 
+${weatherContext}
+
 You MUST structure your response strictly matching the JSON schema.
 1. preparednessPlan: Provide distinct instructions for 'before', 'during', and 'after' phases.
 2. travelAdvisory: General travel safety guidance based on the location.
 3. emergencyChecklists: Actionable lists for 'before', 'during', and 'after' phases.
 4. safetyRecommendations: 4-6 concise safety recommendations tailored to the household vulnerabilities.
+5. communityActions: 3-5 actions that neighbors, resident associations, schools, or local volunteers can coordinate.
+6. medicalAndAccessibility: 3-5 accessibility-aware actions for elderly people, infants, people with disabilities, chronic illness, or medication needs.
+7. recoverySteps: 3-5 post-event recovery actions covering sanitation, damage documentation, official reporting, and safe return.
 
 CRITICAL: Provide the ENTIRE response in ${languageName} language.
 You MUST output your final answer strictly as a valid minified JSON object matching the requested schema wrapper format. Do not wrap the JSON in Markdown code block backticks (\`\`\`json) or write any introductory conversational text.`;
@@ -50,8 +65,11 @@ You MUST output your final answer strictly as a valid minified JSON object match
  * @param context - Validated user request
  * @returns A strictly typed AiPlanResponse object
  */
-export async function generatePreparednessPlan(context: PreparednessRequest): Promise<AiPlanResponse> {
-  const prompt = buildPrompt(context);
+export async function generatePreparednessPlan(
+  context: PreparednessRequest,
+  weather?: WeatherSnapshot
+): Promise<AiPlanResponse> {
+  const prompt = buildPrompt(context, weather);
 
   try {
     const { object } = await generateObject({
@@ -85,6 +103,21 @@ export async function generatePreparednessPlan(context: PreparednessRequest): Pr
         "Share your plan with every household member.",
         "Avoid floodwater because it may hide open drains, debris, or live wires.",
         "Follow official alerts before resuming travel."
+      ],
+      communityActions: [
+        "Create a neighbor check-in group for elderly residents and people living alone.",
+        "Identify elevated safe points and share them with your housing society or street group.",
+        "Keep a shared list of local emergency numbers, shelters, pharmacies, and repair services."
+      ],
+      medicalAndAccessibility: [
+        "Store medicines, prescriptions, and assistive devices in waterproof bags.",
+        "Plan evacuation support for anyone with limited mobility before rainfall peaks.",
+        "Keep infant supplies, inhalers, and chronic-care equipment ready for at least 72 hours."
+      ],
+      recoverySteps: [
+        "Use boiled or officially cleared water until local authorities confirm safety.",
+        "Photograph damage before cleanup for insurance or relief claims.",
+        "Report blocked drains, fallen power lines, and contaminated water to local authorities."
       ],
     };
     

@@ -49,7 +49,11 @@ function severityToStatus(severity: WeatherSeverity): WeatherData['status'] {
   return 'Clear';
 }
 
-export const WeatherAdvisory: React.FC = () => {
+interface WeatherAdvisoryProps {
+  location: string;
+}
+
+export const WeatherAdvisory: React.FC<WeatherAdvisoryProps> = ({ location }) => {
   const { t } = useI18n();
   const [weather, setWeather] = useState<WeatherData>(fallbackWeather);
   const [loading, setLoading] = useState(true);
@@ -59,7 +63,7 @@ export const WeatherAdvisory: React.FC = () => {
 
     async function loadWeather() {
       try {
-        const response = await fetch('/api/weather?location=Mumbai%2C%20Maharashtra', {
+        const response = await fetch(`/api/weather?location=${encodeURIComponent(location)}`, {
           signal: controller.signal,
         });
         if (!response.ok) return;
@@ -90,7 +94,7 @@ export const WeatherAdvisory: React.FC = () => {
     loadWeather();
 
     return () => controller.abort();
-  }, []);
+  }, [location]);
 
   const severity = useMemo(
     () =>
@@ -176,7 +180,7 @@ export const WeatherAdvisory: React.FC = () => {
       </p>
 
       <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-monsoon-plum/55">
-        {weather.source ?? 'mock-weather-engine'} | {updatedLabel}
+        {location} | {weather.source ?? 'mock-weather-engine'} | {updatedLabel}
       </p>
     </section>
   );

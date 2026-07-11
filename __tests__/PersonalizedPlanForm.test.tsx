@@ -44,6 +44,9 @@ describe('PersonalizedPlanForm', () => {
         after: ['Check damage'],
       },
       safetyRecommendations: ['Keep meds ready'],
+      communityActions: ['Check on neighbors'],
+      medicalAndAccessibility: ['Keep medicines dry'],
+      recoverySteps: ['Boil drinking water'],
     };
 
     (global.fetch as jest.Mock).mockResolvedValue({
@@ -59,7 +62,15 @@ describe('PersonalizedPlanForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'submitButton' }));
 
     await waitFor(() => {
-      expect(mockOnPlanGenerated).toHaveBeenCalledWith(mockResponse);
+      expect(mockOnPlanGenerated).toHaveBeenCalledWith({
+        ...mockResponse,
+        context: {
+          location: 'Chennai',
+          familySize: 3,
+          vulnerabilities: [],
+          language: 'en',
+        },
+      });
     });
 
     expect(global.fetch).toHaveBeenCalledWith(

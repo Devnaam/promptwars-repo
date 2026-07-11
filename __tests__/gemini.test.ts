@@ -33,6 +33,9 @@ describe('GenAI Service: generatePreparednessPlan', () => {
         after: ['Check for structural damage', 'Boil drinking water'],
       },
       safetyRecommendations: ['Keep medications accessible', 'Charge all devices'],
+      communityActions: ['Check on elderly neighbors'],
+      medicalAndAccessibility: ['Keep medicines in waterproof bags'],
+      recoverySteps: ['Document damage before cleanup'],
     };
 
     generateObjectMock.mockResolvedValue({ object: mockPlan } as Awaited<ReturnType<typeof generateObject>>);
@@ -66,6 +69,9 @@ describe('GenAI Service: generatePreparednessPlan', () => {
         travelAdvisory: 'safe',
         emergencyChecklists: { before: ['x'], during: ['y'], after: ['z'] },
         safetyRecommendations: ['safe'],
+        communityActions: ['community'],
+        medicalAndAccessibility: ['medical'],
+        recoverySteps: ['recovery'],
       },
     } as Awaited<ReturnType<typeof generateObject>>);
 
@@ -95,5 +101,6 @@ describe('GenAI Service: generatePreparednessPlan', () => {
     expect(result.travelAdvisory.length).toBeGreaterThan(0);
     expect(result.emergencyChecklists.before.length).toBeGreaterThan(0);
     expect(result.safetyRecommendations.length).toBeGreaterThan(0);
+    expect(result.communityActions.length).toBeGreaterThan(0);
   });
 });

@@ -22,6 +22,9 @@ export const GenAIResponseSchema = z.object({
   travelAdvisory: z.string().min(1, 'Travel advisory is required'),
   emergencyChecklists: PhaseChecklistSchema,
   safetyRecommendations: z.array(z.string()).min(1),
+  communityActions: z.array(z.string().min(1)).min(1),
+  medicalAndAccessibility: z.array(z.string().min(1)).min(1),
+  recoverySteps: z.array(z.string().min(1)).min(1),
 });
 
 export type GenAIResponse = z.infer<typeof GenAIResponseSchema>;

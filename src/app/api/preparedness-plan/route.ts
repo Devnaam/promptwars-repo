@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PreparednessRequestSchema } from '@/schemas/preparedness';
 import { checkRateLimit } from '@/utils/rate-limiter';
 import { generatePreparednessPlan } from '@/services/aiPlanService';
+import { getWeatherSnapshot } from '@/services/weatherService';
 
 /** Standard error response shape for consistent client-side handling. */
 interface ApiErrorResponse {
@@ -48,8 +49,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json(error, { status: 400 });
     }
 
-    // 4. Generate plan (inputs are sanitized inside the service)
-    const plan = await generatePreparednessPlan(parseResult.data);
+    // 4. Generate plan with weather intelligence (inputs are sanitized inside the service)
+    const weather = await getWeatherSnapshot(parseResult.data.location);
+    const plan = await generatePreparednessPlan(parseResult.data, weather);
 
     // 5. Return validated, structured response
     return NextResponse.json(plan, { status: 200 });
