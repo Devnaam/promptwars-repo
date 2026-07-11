@@ -17,11 +17,6 @@ export const PersonalizedPlanForm: React.FC<PersonalizedPlanFormProps> = ({ onPl
   const { t, locale } = useI18n();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [fatalError, setFatalError] = useState<Error | null>(null);
-
-  if (fatalError) {
-    throw fatalError; // Let the React ErrorBoundary catch and display the generic safety fallback
-  }
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -52,14 +47,15 @@ export const PersonalizedPlanForm: React.FC<PersonalizedPlanFormProps> = ({ onPl
       });
 
       if (!response.ok) {
-        throw new Error(t('errorMessage') as string);
+        setError(t('errorMessage') as string);
+        return;
       }
 
       const data: PlanData = await response.json();
       onPlanGenerated(data);
     } catch (err) {
-      // For GenAI API failures, we throw to trigger the ErrorBoundary fallback UI
-      setFatalError(err instanceof Error ? err : new Error('Unknown Error'));
+      // Set local component error state instead of triggering ErrorBoundary
+      setError(t('errorMessage') as string);
     } finally {
       setLoading(false);
     }
